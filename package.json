@@ -1,0 +1,18 @@
+{
+  "private": true,
+  "scripts": {
+    "dev": "gulp dev",
+    "prod": "gulp prod"
+  },
+  "devDependencies": {
+    "browser-sync": "^3.0.2",
+    "del": "^6.1.1",
+    "gulp": "^4.0.2",
+    "gulp-clean-css": "^4.3.0",
+    "gulp-remove-sourcemaps": "^1.0.4",
+    "gulp-sass": "^5.1.0",
+    "gulp-sourcemaps": "^3.0.0",
+    "gulp-terser": "^2.1.0",
+    "sass": "^1.52.3"
+  }
+}
