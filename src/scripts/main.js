@@ -27,3 +27,38 @@ function stringToUint8Array(str) {
   const encoder = new TextEncoder();
   return encoder.encode(str);
 }
+
+// Create JWT function
+async function createJWT(payload, privateKey) {
+  // Create header
+  const header = {
+    alg: "RS256",
+    typ: "JWT",
+  };
+
+  // Encode header and payload
+  const encodedHeader = base64UrlEncode(
+    stringToUint8Array(JSON.stringify(header))
+  );
+  const encodedPayload = base64UrlEncode(
+    stringToUint8Array(JSON.stringify(payload))
+  );
+
+  // Create signature input
+  const signatureInput = `${encodedHeader}.${encodedPayload}`;
+
+  // Sign the JWT
+  const signature = await window.crypto.subtle.sign(
+    {
+      name: "RSASSA-PKCS1-v1_5",
+    },
+    privateKey,
+    stringToUint8Array(signatureInput)
+  );
+
+  // Encode signature
+  const encodedSignature = base64UrlEncode(signature);
+
+  // Return complete JWT
+  return `${signatureInput}.${encodedSignature}`;
+}
