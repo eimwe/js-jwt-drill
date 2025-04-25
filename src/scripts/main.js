@@ -104,3 +104,50 @@ async function verifyJWT(token, publicKey) {
 
   return { valid: true, payload };
 }
+
+// Demo
+async function runDemo() {
+  console.log("Starting JWT Asymmetric Crypto Demo...");
+
+  try {
+    // Generate key pair
+    console.log("Generating RSA key pair...");
+    const keyPair = await generateKeyPair();
+    console.log("Key pair generated!");
+
+    // Create payload
+    const payload = {
+      sub: "1234567890",
+      name: "John Doe",
+      admin: true,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 3600, // Expires in 1 hour
+    };
+
+    // Create JWT
+    console.log("Creating JWT with payload:", payload);
+    const token = await createJWT(payload, keyPair.privateKey);
+    console.log("JWT created:", token);
+
+    // Verify JWT
+    console.log("Verifying JWT...");
+    const verification = await verifyJWT(token, keyPair.publicKey);
+    console.log("JWT verification result:", verification);
+
+    // Tamper with the token to demonstrate security
+    const tamperedToken = token.substring(0, token.length - 5) + "XXXXX";
+    console.log("Verifying tampered JWT...");
+    const tamperedVerification = await verifyJWT(
+      tamperedToken,
+      keyPair.publicKey
+    );
+    console.log("Tampered JWT verification result:", tamperedVerification);
+
+    return { token, verification, tamperedVerification };
+  } catch (error) {
+    console.error("Error in JWT demo:", error);
+    return { error: error.message };
+  }
+}
+
+runDemo().then((result) => console.log("Demo completed!"));
