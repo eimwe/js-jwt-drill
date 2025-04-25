@@ -62,3 +62,45 @@ async function createJWT(payload, privateKey) {
   // Return complete JWT
   return `${signatureInput}.${encodedSignature}`;
 }
+
+// Verify JWT function
+async function verifyJWT(token, publicKey) {
+  // Split the JWT into parts
+  const [encodedHeader, encodedPayload, encodedSignature] = token.split(".");
+
+  // Create signature input (header + payload)
+  const signatureInput = `${encodedHeader}.${encodedPayload}`;
+
+  // Decode the signature from base64url
+  const signatureBase64 = encodedSignature
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
+  const padding = "=".repeat((4 - (signatureBase64.length % 4)) % 4);
+  const signatureStr = atob(signatureBase64 + padding);
+  const signature = new Uint8Array(signatureStr.length);
+  for (let i = 0; i < signatureStr.length; i++) {
+    signature[i] = signatureStr.charCodeAt(i);
+  }
+
+  // Verify the signature
+  const isValid = await window.crypto.subtle.verify(
+    {
+      name: "RSASSA-PKCS1-v1_5",
+    },
+    publicKey,
+    signature,
+    stringToUint8Array(signatureInput)
+  );
+
+  if (!isValid) {
+    return { valid: false, payload: null };
+  }
+
+  // Decode the payload
+  const payloadBase64 = encodedPayload.replace(/-/g, "+").replace(/_/g, "/");
+  const payloadPadding = "=".repeat((4 - (payloadBase64.length % 4)) % 4);
+  const payloadStr = atob(payloadBase64 + payloadPadding);
+  const payload = JSON.parse(payloadStr);
+
+  return { valid: true, payload };
+}
