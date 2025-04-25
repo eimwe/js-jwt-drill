@@ -16,3 +16,14 @@ async function generateKeyPair() {
 
   return keyPair;
 }
+
+// Functions to encode/decode base64url
+function base64UrlEncode(data) {
+  const base64 = btoa(String.fromCharCode(...new Uint8Array(data)));
+  return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function stringToUint8Array(str) {
+  const encoder = new TextEncoder();
+  return encoder.encode(str);
+}
