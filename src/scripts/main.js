@@ -157,3 +157,63 @@ async function decryptJWE(jwe, privateKey) {
     throw error;
   }
 }
+
+// Demo function
+async function runDemo() {
+  const output = document.getElementById("results");
+  output.innerHTML = "<h3>Running demo...</h3>";
+
+  try {
+    // 1. Generate key pair
+    output.innerHTML += "<p>1. Generating RSA-OAEP key pair...</p>";
+    const keyPair = await generateEncryptionKeyPair();
+    output.innerHTML += "<p>Key pair generated successfully</p>";
+
+    // 2. Create payload
+    const payload = {
+      sub: "1234567890",
+      name: "John Doe",
+      admin: true,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 3600, // Expires in 1 hour
+    };
+    output.innerHTML += `<p>2. Original payload: <pre>${JSON.stringify(
+      payload,
+      null,
+      2
+    )}</pre></p>`;
+
+    // 3. Create JWE
+    output.innerHTML += "<p>3. Creating JWE...</p>";
+    const jwe = await createJWE(payload, keyPair.publicKey);
+    output.innerHTML += `<p>JWE created (${jwe.length} chars):</p><pre>${jwe}</pre>`;
+
+    // 4. Decrypt JWE
+    output.innerHTML += "<p>4. Decrypting JWE...</p>";
+    const decryptedPayload = await decryptJWE(jwe, keyPair.privateKey);
+    output.innerHTML += `<p>Decrypted payload: <pre>${JSON.stringify(
+      decryptedPayload,
+      null,
+      2
+    )}</pre></p>`;
+
+    // 5. Tamper test
+    output.innerHTML += "<p>5. Testing with tampered JWE...</p>";
+    try {
+      const tamperedJwe = jwe.substring(0, jwe.length - 5) + "XXXXX";
+      await decryptJWE(tamperedJwe, keyPair.privateKey);
+      output.innerHTML +=
+        '<p style="color:red">Error: Tampered JWE was decrypted successfully (this should not happen!)</p>';
+    } catch (tamperError) {
+      output.innerHTML += `<p style="color:green">Security check passed: Tampered JWE failed to decrypt with error: "${tamperError.message}"</p>`;
+    }
+
+    output.innerHTML += '<h3 style="color:green">Demo completed</h3>';
+  } catch (error) {
+    output.innerHTML += `<p style="color:red">Error: ${error.message}</p>`;
+    console.error("Demo error:", error);
+  }
+}
+
+// Run demo
+document.getElementById("runDemo").addEventListener("click", runDemo);
