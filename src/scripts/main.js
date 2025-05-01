@@ -95,3 +95,65 @@ async function createJWE(payload, publicKey) {
     throw error;
   }
 }
+
+// Decrypt JWE
+async function decryptJWE(jwe, privateKey) {
+  try {
+    const parts = jwe.split(".");
+    if (parts.length !== 5) {
+      throw new Error("Invalid JWE format");
+    }
+
+    const [protectedHeader, encryptedKey, iv, ciphertext, tag] = parts;
+
+    // Decode the protected header to get algorithms
+    const header = JSON.parse(
+      new TextDecoder().decode(base64UrlDecode(protectedHeader))
+    );
+
+    if (header.alg !== "RSA-OAEP" || header.enc !== "A256GCM") {
+      throw new Error("Unsupported algorithm");
+    }
+
+    // Decrypt the CEK with RSA-OAEP
+    const decryptedKey = await crypto.subtle.decrypt(
+      { name: "RSA-OAEP" },
+      privateKey,
+      base64UrlDecode(encryptedKey)
+    );
+
+    // Import the CEK
+    const cek = await crypto.subtle.importKey(
+      "raw",
+      decryptedKey,
+      { name: "AES-GCM" },
+      false,
+      ["decrypt"]
+    );
+
+    // Combine ciphertext and tag for decryption
+    const ciphertextBytes = base64UrlDecode(ciphertext);
+    const tagBytes = base64UrlDecode(tag);
+    const encryptedData = new Uint8Array(
+      ciphertextBytes.byteLength + tagBytes.byteLength
+    );
+    encryptedData.set(new Uint8Array(ciphertextBytes), 0);
+    encryptedData.set(new Uint8Array(tagBytes), ciphertextBytes.byteLength);
+
+    // Decrypt the payload
+    const decrypted = await crypto.subtle.decrypt(
+      {
+        name: "AES-GCM",
+        iv: base64UrlDecode(iv),
+        tagLength: 128,
+      },
+      cek,
+      encryptedData
+    );
+
+    return JSON.parse(new TextDecoder().decode(decrypted));
+  } catch (error) {
+    console.error("Error in decryptJWE:", error);
+    throw error;
+  }
+}
