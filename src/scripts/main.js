@@ -17,3 +17,17 @@ function base64UrlDecode(base64Url) {
   }
   return bytes;
 }
+
+// Generate key pair for encryption
+async function generateEncryptionKeyPair() {
+  return await window.crypto.subtle.generateKey(
+    {
+      name: "RSA-OAEP",
+      modulusLength: 2048,
+      publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+      hash: "SHA-256",
+    },
+    true,
+    ["encrypt", "decrypt"]
+  );
+}
