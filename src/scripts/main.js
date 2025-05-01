@@ -31,3 +31,67 @@ async function generateEncryptionKeyPair() {
     ["encrypt", "decrypt"]
   );
 }
+
+// Create JWE
+async function createJWE(payload, publicKey) {
+  try {
+    // Generate a random content encryption key (CEK)
+    const cek = await crypto.subtle.generateKey(
+      { name: "AES-GCM", length: 256 },
+      true,
+      ["encrypt", "decrypt"]
+    );
+
+    // Export the CEK in raw format for encryption
+    const exportedCek = await crypto.subtle.exportKey("raw", cek);
+
+    // Encrypt the CEK with RSA-OAEP
+    const encryptedKey = await crypto.subtle.encrypt(
+      { name: "RSA-OAEP" },
+      publicKey,
+      exportedCek
+    );
+
+    // Encrypt the payload with AES-GCM
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const encodedPayload = new TextEncoder().encode(JSON.stringify(payload));
+    const encryptedResult = await crypto.subtle.encrypt(
+      {
+        name: "AES-GCM",
+        iv: iv,
+        tagLength: 128,
+      },
+      cek,
+      encodedPayload
+    );
+
+    // Extract ciphertext and tag from the result
+    const ciphertext = encryptedResult.slice(
+      0,
+      encryptedResult.byteLength - 16
+    );
+    const tag = encryptedResult.slice(encryptedResult.byteLength - 16);
+
+    // Construct JWE (compact serialization)
+    const protectedHeader = base64UrlEncode(
+      JSON.stringify({
+        alg: "RSA-OAEP",
+        enc: "A256GCM",
+        kid: "1", // Optional key ID
+      })
+    );
+
+    const jweParts = [
+      protectedHeader,
+      base64UrlEncode(encryptedKey),
+      base64UrlEncode(iv),
+      base64UrlEncode(ciphertext),
+      base64UrlEncode(tag),
+    ];
+
+    return jweParts.join(".");
+  } catch (error) {
+    console.error("Error in createJWE:", error);
+    throw error;
+  }
+}
